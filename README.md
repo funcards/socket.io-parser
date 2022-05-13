@@ -30,8 +30,8 @@ The parser can encode/decode packets, payloads and payloads as binary.
 Example:
 
 ```go
-packet := sio_parser.Packet{
-    Type: sio_parser.Connect,
+packet := siop.Packet{
+    Type: siop.Connect,
     Nsp:  "/posts",
     Data: map[string]string{
         "sid": "unique-id",
@@ -44,7 +44,7 @@ fn := func(pkt Packet) {
     fmt.Println(pkt)
 }
 
-err := sio_parser.Decode(fn, encoded...)
+err := siop.Decode(fn, encoded...)
 ```
 
 ## License

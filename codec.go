@@ -1,4 +1,4 @@
-package sio_parser
+package siop
 
 import (
 	"encoding/json"
