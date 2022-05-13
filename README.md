@@ -20,7 +20,7 @@ go get github.com/funcards/socket.io-parser/v5
 Then import the parser package into your own code.
 
 ```go
-import "github.com/funcards/engine.io-parser/v4"
+import "github.com/funcards/socket.io-parser/v5"
 ```
 
 ## How to use
