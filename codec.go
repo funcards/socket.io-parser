@@ -46,7 +46,7 @@ type (
 		buffers []any
 	}
 
-	Callback func(pkt Packet)
+	Callback func(pkt Packet) error
 
 	decoder struct {
 		reconstructor *reconstructor
@@ -216,7 +216,7 @@ func (d *decoder) Add(data any) error {
 		}
 
 		if d.callback != nil {
-			d.callback(pkt)
+			return d.callback(pkt)
 		}
 	case []byte:
 		if d.reconstructor == nil {
@@ -225,7 +225,7 @@ func (d *decoder) Add(data any) error {
 		if pkt := d.reconstructor.takeBinaryData(tmp); pkt != nil {
 			d.reconstructor = nil
 			if d.callback != nil {
-				d.callback(*pkt)
+				return d.callback(*pkt)
 			}
 		}
 	}
