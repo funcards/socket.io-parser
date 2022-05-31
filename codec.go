@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -49,6 +50,7 @@ type (
 	Callback func(pkt Packet) error
 
 	decoder struct {
+		mu            sync.Mutex
 		reconstructor *reconstructor
 		callback      Callback
 	}
@@ -200,34 +202,41 @@ func NewDecoder(callback Callback) *decoder {
 	return &decoder{callback: callback}
 }
 
-func (d *decoder) Add(data any) error {
+func (d *decoder) Add(data any) (err error) {
+	var (
+		callback Callback
+		packet   Packet
+	)
+
+	d.mu.Lock()
 	switch tmp := data.(type) {
 	case string:
-		pkt, err := d.decodeString(tmp)
+		packet, err = d.decodeString(tmp)
 		if err != nil {
 			return err
 		}
-		if pkt.Type == BinaryEvent || pkt.Type == BinaryAck {
-			d.reconstructor = newReconstructor(&pkt)
+		if packet.Type == BinaryEvent || packet.Type == BinaryAck {
+			d.reconstructor = newReconstructor(&packet)
 
-			if pkt.Attachments != 0 {
+			if packet.Attachments != 0 {
 				return nil
 			}
 		}
-
-		if d.callback != nil {
-			return d.callback(pkt)
-		}
+		callback = d.callback
 	case []byte:
 		if d.reconstructor == nil {
 			return ErrReconstructPacket
 		}
 		if pkt := d.reconstructor.takeBinaryData(tmp); pkt != nil {
+			packet = *pkt
+			callback = d.callback
 			d.reconstructor = nil
-			if d.callback != nil {
-				return d.callback(*pkt)
-			}
 		}
+	}
+	d.mu.Unlock()
+
+	if callback != nil {
+		return callback(packet)
 	}
 	return nil
 }
@@ -288,6 +297,9 @@ func (d *decoder) decodeString(str string) (Packet, error) {
 }
 
 func (d *decoder) Destroy() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.reconstructor != nil {
 		d.reconstructor.finishReconstruction()
 	}
@@ -295,6 +307,9 @@ func (d *decoder) Destroy() {
 }
 
 func (d *decoder) OnDecoded(callback Callback) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	d.callback = callback
 }
 
